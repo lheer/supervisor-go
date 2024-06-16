@@ -1,0 +1,13 @@
+name = "Main"
+
+[programs]
+
+    [programs.ls]
+    command = "ls"
+    priority = 1
+    oneshot = true
+
+    [programs.sleep]
+    command = "sleep 3"
+    startsecs = 1
+    autorestart = true
