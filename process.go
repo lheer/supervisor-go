@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"time"
-
-	"github.com/looplab/fsm"
 )
 
 // Used to capture stdout/stderr from process and annotate it with some prefix
@@ -22,23 +20,6 @@ func pipe_output(reader io.Reader, prefix string, isStderr bool) {
 			fmt.Printf("%s %s\n", prefix, scanner.Text())
 		}
 	}
-}
-
-func newProcess(id int) *Process {
-	p := &Process{}
-	p.id = id
-	p.FSM = fsm.NewFSM(
-		string(Exited),
-		fsm.Events{
-			{Name: "start", Src: []string{"Exited"}, Dst: "Starting"},
-			{Name: "start_fail", Src: []string{"Starting"}, Dst: "Exited"},
-			{Name: "start_success", Src: []string{"Starting"}, Dst: "Running"},
-			{Name: "exit", Src: []string{"Running"}, Dst: "Exited"},
-		},
-		fsm.Callbacks{},
-	)
-
-	return p
 }
 
 func RunProgram(prg *ProgramConfig, backchannel chan ProcessEvent) {
@@ -79,13 +60,15 @@ func RunProgram(prg *ProgramConfig, backchannel chan ProcessEvent) {
 	// Wait for the command to finish
 	if err := pHandle.Wait(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
+			// Exit code != 0
 			backchannel <- ProcessEvent{id: prg.id, exit_code: exiterr.ExitCode(), new_state: Exited}
 		}
 		fmt.Printf("[%s]: Finished with error: %v\n", prg.Command, err)
+		timer.Stop()
+		return
 	}
 
-	timer.Stop()
-
 	// all good, exit code 0
+	timer.Stop()
 	backchannel <- ProcessEvent{id: prg.id, exit_code: pHandle.ProcessState.ExitCode(), new_state: Exited}
 }
