@@ -8,20 +8,21 @@ type (
 	}
 	// A program as defined in toml file
 	ProgramConfig struct {
-		Command     string
-		Priority    int
-		Oneshot     bool
-		Autorestart bool
-		Startsecs   uint
-		id          int
+		Command      string
+		Priority     int
+		Oneshot      bool
+		Autorestart  bool
+		Startsecs    uint
+		Startretries uint
+		id           int
 	}
 
 	ProcessState string
 
 	ProcessEvent struct {
 		id        int
-		pid       int
-		exit_code int // only valid in
+		pid       int // only valid in state starting and running
+		exit_code int // only valid in state exited
 		new_state ProcessState
 	}
 )

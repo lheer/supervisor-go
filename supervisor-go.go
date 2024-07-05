@@ -62,9 +62,9 @@ func main() {
 
 		if event.new_state == Exited {
 			fmt.Printf("Exited: %s\n", program.Command)
-			running--
+			running--; program.Startretries--
 
-			if program.Autorestart {
+			if program.Autorestart && program.Startretries > 0 {
 				go RunProgram(program, backchannel)
 				running++
 				fmt.Printf("Restarted: %s\n", program.Command)
