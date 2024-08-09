@@ -6,6 +6,7 @@ name = "Main"
     command = "ls"
     priority = 1
     oneshot = true
+    after = "sleep"
 
     [programs.sleep]
     command = "sleep 3 && false"
