@@ -1,11 +1,12 @@
 package main
 
 import (
+	"reflect"
 	"slices"
 	"testing"
 )
 
-func TestGraph(t *testing.T) {
+func TestGraphBasics(t *testing.T) {
 	// Test creation
 	graph := NewGraph[int]()
 	graph.AddEdge(1, 2)
@@ -44,5 +45,27 @@ func TestGraph(t *testing.T) {
 	rootnodes := graph.GetRootNodes()
 	if len(rootnodes) != 2 || !slices.Contains(rootnodes, 1) || !slices.Contains(rootnodes, 5) {
 		t.Errorf("Expected root nodes of graph to be [1, 5], got %v", rootnodes)
+	}
+}
+
+func TestWithPointers(t *testing.T) {
+	data := []int{1, 2, 3, 4, 5}
+
+	g := NewGraph[*int]()
+	for i := range data {
+		g.AddVertex(&data[i])
+	}
+
+	g.AddEdge(&data[0], &data[1])
+	g.AddEdge(&data[0], &data[2])
+	g.AddEdge(&data[0], &data[3])
+
+	roots := g.GetSuccessors(&data[0])
+	for _, val := range roots {
+		*val *= 2
+	}
+
+	if !reflect.DeepEqual(data, []int{1, 4, 6, 8, 5}) {
+		t.Errorf("Expected modified slice, got %v", data)
 	}
 }
