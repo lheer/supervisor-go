@@ -12,4 +12,4 @@ name = "Main"
     command = "sleep 3 && false"
     startsecs = 1
     autorestart = true
-    startretries = 2
+    startretries = 1

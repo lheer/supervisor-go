@@ -75,12 +75,18 @@ func main() {
 		if event.new_state == Exited {
 			fmt.Printf("Exited: %s\n", program.key)
 			running--
-			program.Startretries--
 
 			if program.Autorestart && program.Startretries > 0 {
+				program.Startretries--
 				go RunProgram(program, backchannel)
 				running++
 				fmt.Printf("Restarted: %s\n", program.key)
+			} else {
+				successors := ProgramGraph.GetSuccessors(program)
+				for _, p := range successors {
+					go RunProgram(p, backchannel)
+					running++
+				}
 			}
 		} else if event.new_state == Starting {
 			fmt.Printf("Starting: %s\n", program.key)
