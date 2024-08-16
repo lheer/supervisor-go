@@ -1,14 +1,28 @@
 name = "Main"
 
 [programs]
+    # Some short-running program.
+    [programs.short]
+    command = "sleep 1"
 
-    [programs.ls]
+    # Run after another program has exited.
+    [programs.one_shot]
     command = "ls"
-    priority = 1
-    oneshot = true
+    after = "short"
 
-    [programs.sleep]
-    command = "sleep 3 && false"
-    startsecs = 1
+    # Some long-running daemon. Is considered up and running after 3 seconds.
+    # Restart on failure / exit.
+    [programs.some_daemon]
+    command = "sleep 5"
+    startsecs = 3
     autorestart = true
     startretries = 2
+
+    # Some program that fails.
+    [programs.fails]
+    command = "false"
+
+    # Should not be started since it runs after a failed program.
+    [programs.dont_start]
+    command = "echo should not be started"
+    after = "fails"

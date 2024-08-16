@@ -24,7 +24,7 @@ func pipe_output(reader io.Reader, prefix string, isStderr bool) {
 
 func RunProgram(prg *ProgramConfig, backchannel chan ProcessEvent) {
 
-	fmt.Printf("[%s]: Starting\n", prg.Command)
+	fmt.Printf("[%s]: Starting\n", prg.key)
 
 	pHandle := exec.Command("sh", "-c", prg.Command)
 
@@ -39,36 +39,38 @@ func RunProgram(prg *ProgramConfig, backchannel chan ProcessEvent) {
 	}
 
 	// Read stdout / stderr and print
-	go pipe_output(stdoutPipe, "["+prg.Command+"]: ", false)
-	go pipe_output(stderrPipe, "["+prg.Command+"]: ", true)
+	go pipe_output(stdoutPipe, "["+prg.key+"]: ", false)
+	go pipe_output(stderrPipe, "["+prg.key+"]: ", true)
 
 	// Start the process
 	if err := pHandle.Start(); err != nil {
-		fmt.Printf("[%s]: Error starting program\n", prg.Command)
+		fmt.Printf("[%s]: Error starting program\n", prg.key)
 		return
 	}
 
-	backchannel <- ProcessEvent{id: prg.id, pid: pHandle.Process.Pid, exit_code: 0, new_state: Starting}
+	backchannel <- ProcessEvent{key: prg.key, pid: pHandle.Process.Pid, exit_code: 0, new_state: Starting}
 
 	// Only after startsecs, process is considered up and running
 	timer := time.NewTimer(time.Second * time.Duration(prg.Startsecs))
-	go func() {
-		<-timer.C
-		backchannel <- ProcessEvent{id: prg.id, new_state: Running}
-	}()
+	if prg.Startsecs != 0 {
+		go func() {
+			<-timer.C
+			backchannel <- ProcessEvent{key: prg.key, new_state: Running}
+		}()
+	}
 
 	// Wait for the command to finish
 	if err := pHandle.Wait(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			// Exit code != 0
-			backchannel <- ProcessEvent{id: prg.id, exit_code: exiterr.ExitCode(), new_state: Exited}
+			backchannel <- ProcessEvent{key: prg.key, exit_code: exiterr.ExitCode(), new_state: Exited}
 		}
-		fmt.Printf("[%s]: Finished with error: %v\n", prg.Command, err)
+		fmt.Printf("[%s]: Finished with error: %v\n", prg.key, err)
 		timer.Stop()
 		return
 	}
 
 	// all good, exit code 0
 	timer.Stop()
-	backchannel <- ProcessEvent{id: prg.id, exit_code: pHandle.ProcessState.ExitCode(), new_state: Exited}
+	backchannel <- ProcessEvent{key: prg.key, exit_code: pHandle.ProcessState.ExitCode(), new_state: Exited}
 }
