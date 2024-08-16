@@ -17,7 +17,7 @@ func NewGraph[T comparable]() *Graph[T] {
 	}
 }
 
-// Adds an edge between two vertices (that are created if not existent)
+// Adds an edge between two vertices (are created if not existent)
 func (g *Graph[T]) AddEdge(from, to T) {
 	g.adjacencyList[from] = append(g.adjacencyList[from], to)
 	// Add "to" vertex to graph as well
@@ -26,7 +26,7 @@ func (g *Graph[T]) AddEdge(from, to T) {
 
 // Add a vertex to the graph. Returns an error if already exists
 func (g *Graph[T]) AddVertex(vertex T) error {
-	if _, ok := g.adjacencyList[vertex]; !ok {
+	if !g.HasVertex(vertex) {
 		g.adjacencyList[vertex] = make([]T, 0)
 		return nil
 	} else {
@@ -43,6 +43,13 @@ func (g *Graph[T]) GetAllVertices() []T {
 		i++
 	}
 	return keys
+}
+
+func (g *Graph[T]) HasVertex(vertex T) bool {
+	if _, ok := g.adjacencyList[vertex]; ok {
+		return true
+	}
+	return false
 }
 
 // Returns the successors of a given vertex

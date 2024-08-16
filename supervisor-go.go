@@ -55,7 +55,11 @@ func main() {
 		if prg.After != "" {
 			// Has successor, get predeccessor and add edge in graph
 			pre := getProgramByKey(programs, prg.After)
-			ProgramGraph.AddEdge(pre, prg)
+			if pre == nil {
+				fmt.Fprintf(os.Stderr, "Error creating execution graph while adding edge %+v, check configuration\n", programs[i])
+				os.Exit(1)
+			}
+			ProgramGraph.AddEdge(pre, &programs[i])
 		}
 	}
 
@@ -81,17 +85,26 @@ func main() {
 				go RunProgram(program, backchannel)
 				running++
 				fmt.Printf("Restarted: %s\n", program.key)
-			} else {
+			} else if event.exit_code == 0 {
+				// Program has finished with exit code 0, start successors
 				successors := ProgramGraph.GetSuccessors(program)
 				for _, p := range successors {
 					go RunProgram(p, backchannel)
 					running++
 				}
+			} else {
+				fmt.Fprintf(os.Stderr, "Failed to start %s, giving up\n", program.key)
 			}
 		} else if event.new_state == Starting {
 			fmt.Printf("Starting: %s\n", program.key)
 		} else if event.new_state == Running {
 			fmt.Printf("Running: %s\n", program.key)
+			// Program is up and running, start successors
+			successors := ProgramGraph.GetSuccessors(program)
+			for _, p := range successors {
+				go RunProgram(p, backchannel)
+				running++
+			}
 		} else {
 			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s", event.new_state)
 		}

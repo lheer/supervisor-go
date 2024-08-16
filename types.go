@@ -9,7 +9,6 @@ type (
 	// A program as defined in toml file
 	ProgramConfig struct {
 		Command      string
-		Oneshot      bool
 		Autorestart  bool
 		Startsecs    uint
 		Startretries uint

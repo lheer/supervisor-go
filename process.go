@@ -52,10 +52,12 @@ func RunProgram(prg *ProgramConfig, backchannel chan ProcessEvent) {
 
 	// Only after startsecs, process is considered up and running
 	timer := time.NewTimer(time.Second * time.Duration(prg.Startsecs))
-	go func() {
-		<-timer.C
-		backchannel <- ProcessEvent{key: prg.key, new_state: Running}
-	}()
+	if prg.Startsecs != 0 {
+		go func() {
+			<-timer.C
+			backchannel <- ProcessEvent{key: prg.key, new_state: Running}
+		}()
+	}
 
 	// Wait for the command to finish
 	if err := pHandle.Wait(); err != nil {
