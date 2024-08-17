@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -17,11 +18,17 @@ func getProgramByKey(prgs []ProgramConfig, key string) *ProgramConfig {
 }
 
 func main() {
-	f := "examples/config.toml"
+	configFile := flag.String("c", "", "Configuration file to use")
+	flag.Parse()
+
+	if *configFile == "" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
 	// Parse toml config file
 	var cfg ConfigFile
-	_, err := toml.DecodeFile(f, &cfg)
+	_, err := toml.DecodeFile(*configFile, &cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
