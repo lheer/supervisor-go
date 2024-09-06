@@ -17,6 +17,7 @@ func getProgramByKey(prgs []ProgramConfig, key string) *ProgramConfig {
 	return nil
 }
 
+// Start the successors of a program and return the number of started programs
 func startSuccessors(g *Graph[*ProgramConfig], prg *ProgramConfig, c chan<- ProcessEvent) int {
 	running := 0
 	successors := g.GetSuccessors(prg)
@@ -29,21 +30,11 @@ func startSuccessors(g *Graph[*ProgramConfig], prg *ProgramConfig, c chan<- Proc
 	return running
 }
 
-func main() {
-	configFile := flag.String("c", "", "Configuration file to use")
-	flag.Parse()
-
-	if *configFile == "" {
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	// Parse toml config file
+func parseConfigFile(cfgFile *string) ([]ProgramConfig, error) {
 	var cfg ConfigFile
-	md, err := toml.DecodeFile(*configFile, &cfg)
+	md, err := toml.DecodeFile(*cfgFile, &cfg)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return []ProgramConfig{}, err
 	}
 
 	// Copy program identifier over to struct
@@ -66,6 +57,24 @@ func main() {
 		if !defined {
 			prg.Startretries = -1
 		}
+	}
+	return programs, nil
+}
+
+func main() {
+	configFile := flag.String("c", "", "Configuration file to use")
+	flag.Parse()
+
+	if *configFile == "" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	// Parse toml config file
+	programs, err := parseConfigFile(configFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to parse config file: %s", err.Error())
+		os.Exit(1)
 	}
 
 	// Create graph
@@ -91,9 +100,9 @@ func main() {
 		}
 	}
 
-	// Start: Launch all root nodes
-	backchannel := make(chan ProcessEvent, len(cfg.Programs))
+	backchannel := make(chan ProcessEvent, len(programs))
 
+	// Start: Launch all root nodes
 	running := 0
 	for _, prg := range ProgramGraph.GetRootNodes() {
 		go RunProgram(prg, backchannel)
