@@ -11,7 +11,7 @@ type (
 		Command      string
 		Autorestart  bool
 		Startsecs    uint
-		Startretries uint
+		Startretries int
 		After        string
 		key          string
 	}

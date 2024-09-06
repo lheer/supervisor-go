@@ -28,7 +28,7 @@ func main() {
 
 	// Parse toml config file
 	var cfg ConfigFile
-	_, err := toml.DecodeFile(*configFile, &cfg)
+	md, err := toml.DecodeFile(*configFile, &cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -45,6 +45,15 @@ func main() {
 	var programs []ProgramConfig
 	for _, prg := range cfg.Programs {
 		programs = append(programs, prg)
+	}
+
+	// If no restart counter is given, set it to -1	
+	for i := range programs {
+		prg := &programs[i]
+		defined := md.IsDefined("programs", prg.key, "startretries")
+		if !defined {
+			prg.Startretries = -1
+		}
 	}
 
 	// Create graph
@@ -87,7 +96,7 @@ func main() {
 			fmt.Printf("Exited: %s\n", program.key)
 			running--
 
-			if program.Autorestart && program.Startretries > 0 {
+			if program.Autorestart && (program.Startretries == -1 || program.Startretries != 0) {
 				program.Startretries--
 				go RunProgram(program, backchannel)
 				running++
