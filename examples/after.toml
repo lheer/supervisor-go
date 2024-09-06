@@ -6,7 +6,6 @@ name = "After"
     command = "sleep 5 && exit 1"
     startsecs = 3
     autorestart = true  # Restart in case of failure
-    startretries = -1  # Restart indefinitely
 
     # Should be started only once after daemon is running.
     [programs.ls]

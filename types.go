@@ -14,6 +14,7 @@ type (
 		Startretries int
 		After        string
 		key          string
+		hasRun		bool
 	}
 
 	ProcessState string

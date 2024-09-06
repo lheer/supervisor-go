@@ -22,7 +22,7 @@ func pipe_output(reader io.Reader, prefix string, isStderr bool) {
 	}
 }
 
-func RunProgram(prg *ProgramConfig, backchannel chan ProcessEvent) {
+func RunProgram(prg *ProgramConfig, backchannel chan<- ProcessEvent) {
 
 	fmt.Printf("[%s]: Starting\n", prg.key)
 

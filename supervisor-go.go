@@ -17,6 +17,18 @@ func getProgramByKey(prgs []ProgramConfig, key string) *ProgramConfig {
 	return nil
 }
 
+func startSuccessors(g *Graph[*ProgramConfig], prg *ProgramConfig, c chan<- ProcessEvent) int {
+	running := 0
+	successors := g.GetSuccessors(prg)
+	for _, p := range successors {
+		if !p.hasRun {
+			go RunProgram(p, c)
+			running++
+		}
+	}
+	return running
+}
+
 func main() {
 	configFile := flag.String("c", "", "Configuration file to use")
 	flag.Parse()
@@ -47,7 +59,7 @@ func main() {
 		programs = append(programs, prg)
 	}
 
-	// If no restart counter is given, set it to -1	
+	// If no restart counter is given, set it to -1
 	for i := range programs {
 		prg := &programs[i]
 		defined := md.IsDefined("programs", prg.key, "startretries")
@@ -95,19 +107,17 @@ func main() {
 		if event.new_state == Exited {
 			fmt.Printf("Exited: %s\n", program.key)
 			running--
+			program.hasRun = true
 
 			if program.Autorestart && (program.Startretries == -1 || program.Startretries != 0) {
+				// Restart if configured
 				program.Startretries--
 				go RunProgram(program, backchannel)
 				running++
 				fmt.Printf("Restarted: %s\n", program.key)
 			} else if event.exit_code == 0 {
 				// Program has finished with exit code 0, start successors
-				successors := ProgramGraph.GetSuccessors(program)
-				for _, p := range successors {
-					go RunProgram(p, backchannel)
-					running++
-				}
+				running += startSuccessors(ProgramGraph, program, backchannel)
 			} else {
 				fmt.Fprintf(os.Stderr, "Failed to start %s, giving up\n", program.key)
 			}
@@ -116,11 +126,7 @@ func main() {
 		} else if event.new_state == Running {
 			fmt.Printf("Running: %s\n", program.key)
 			// Program is up and running, start successors
-			successors := ProgramGraph.GetSuccessors(program)
-			for _, p := range successors {
-				go RunProgram(p, backchannel)
-				running++
-			}
+			running += startSuccessors(ProgramGraph, program, backchannel)
 		} else {
 			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s", event.new_state)
 		}
