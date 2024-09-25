@@ -1,4 +1,5 @@
 name = "After"
+server = "localhost:8080"
 
 [programs]
     # Some daemon that crashes after its running.

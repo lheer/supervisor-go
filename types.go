@@ -1,9 +1,12 @@
 package main
 
+import "sync"
+
 type (
 	// Top-level toml config
 	ConfigFile struct {
 		Name     string
+		Server   string
 		Programs map[string]ProgramConfig
 	}
 	// A program as defined in toml file
@@ -14,7 +17,7 @@ type (
 		Startretries int
 		After        string
 		key          string
-		hasRun		bool
+		hasRun       bool
 	}
 
 	ProcessState string
@@ -29,7 +32,13 @@ type (
 
 // The states a process can be in
 const (
-	Starting ProcessState = "starting"
-	Running  ProcessState = "running"
-	Exited   ProcessState = "exited"
+	NotRunning ProcessState = "not_running"
+	Starting   ProcessState = "starting"
+	Running    ProcessState = "running"
+	Exited     ProcessState = "exited"
 )
+
+type SystemState struct {
+	mu    sync.Mutex
+	state map[string]ProcessState
+}
