@@ -21,7 +21,7 @@ $ supervisor-go -c <path_to_config_file.toml>
 Example:
 
 ```console
-curl -s localhost:8080/state | jq
+$ curl -s localhost:8080/state | jq
 {
   "dont_start": "not_running",
   "fails": "exited",
