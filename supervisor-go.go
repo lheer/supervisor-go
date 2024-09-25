@@ -32,11 +32,11 @@ func startSuccessors(g *Graph[*ProgramConfig], prg *ProgramConfig, c chan<- Proc
 	return running
 }
 
-func parseConfigFile(cfgFile *string) ([]ProgramConfig, error) {
+func parseConfigFile(cfgFile *string) (ConfigFile, []ProgramConfig, error) {
 	var cfg ConfigFile
 	md, err := toml.DecodeFile(*cfgFile, &cfg)
 	if err != nil {
-		return []ProgramConfig{}, err
+		return cfg, []ProgramConfig{}, err
 	}
 
 	// Copy program identifier over to struct
@@ -60,7 +60,7 @@ func parseConfigFile(cfgFile *string) ([]ProgramConfig, error) {
 			prg.Startretries = -1
 		}
 	}
-	return programs, nil
+	return cfg, programs, nil
 }
 
 // Given a slice of programs, create an execution graph from it
@@ -110,7 +110,7 @@ func main() {
 	}
 
 	// Parse toml config file
-	programs, err := parseConfigFile(configFile)
+	cfg, programs, err := parseConfigFile(configFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to parse config file: %s", err.Error())
 		os.Exit(1)
@@ -135,7 +135,7 @@ func main() {
 	mux.Handle("GET /state", HTTPHandler(statemap))
 
 	server := &http.Server{
-		Addr:    ":8888",
+		Addr:    cfg.Server,
 		Handler: mux,
 	}
 	go server.ListenAndServe()

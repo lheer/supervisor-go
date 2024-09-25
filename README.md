@@ -15,3 +15,18 @@ It's configured via a simple TOML file. View the [examples](examples) folder for
 ```console
 $ supervisor-go -c <path_to_config_file.toml>
 ```
+
+## REST Interface
+
+Example:
+
+```console
+curl -s localhost:8080/state | jq
+{
+  "dont_start": "not_running",
+  "fails": "exited",
+  "one_shot": "exited",
+  "short": "starting",
+  "some_daemon": "running"
+}
+```
