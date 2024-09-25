@@ -1,4 +1,5 @@
 name = "Full"
+server = "localhost:8080"
 
 [programs]
     # Some short-running program.
