@@ -16,6 +16,7 @@ type (
 		Startsecs    uint
 		Startretries int
 		After        string
+		Period       string
 		key          string
 		hasRun       bool
 	}

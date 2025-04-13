@@ -27,3 +27,9 @@ server = "localhost:8080"
     [programs.dont_start]
     command = "echo should not be started"
     after = "fails"
+
+    # Execute some program periodically every 5 seconds
+    [programs.periodically]
+    command = "date '+%S'"
+    after = "one_shot"
+    period = "5s"

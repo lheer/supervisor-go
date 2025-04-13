@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -53,14 +54,23 @@ func parseConfigFile(cfgFile *string) (ConfigFile, []ProgramConfig, error) {
 		programs = append(programs, prg)
 	}
 
-	// If no restart counter is given, set it to -1
 	for i := range programs {
 		prg := &programs[i]
+		// If no restart counter is given, set it to -1
 		defined := md.IsDefined("programs", prg.key, "startretries")
 		if !defined {
 			prg.Startretries = -1
 		}
+		// Check if period field can be parsed
+		defined = md.IsDefined("programs", prg.key, "period")
+		if defined {
+			_, err = time.ParseDuration(prg.Period)
+			if err != nil {
+				return cfg, []ProgramConfig{}, err
+			}
+		}
 	}
+
 	return cfg, programs, nil
 }
 
