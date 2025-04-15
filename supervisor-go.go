@@ -123,14 +123,14 @@ func main() {
 	// Parse toml config file
 	cfg, programs, err := parseConfigFile(configFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to parse config file: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "Unable to parse config file: %s\n", err.Error())
 		os.Exit(1)
 	}
 
 	// Create graph containing pointers to programs
 	ProgramGraph, err := createExecutionGraph(programs)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error while creating execution graph: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "Error while creating execution graph: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -164,7 +164,7 @@ func main() {
 		event := <-backchannel
 		program := getProgramByKey(programs, event.key)
 		if program == nil {
-			fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program with key=%s", event.key)
+			fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program with key=%s\n", event.key)
 			continue
 		}
 
@@ -174,7 +174,7 @@ func main() {
 			defer statemap.mu.Unlock()
 			state, ok := statemap.state[program.key]
 			if !ok {
-				fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program state with key=%s", program.key)
+				fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program state with key=%s\n", program.key)
 				return false
 			}
 			state.State = event.newState
@@ -215,7 +215,7 @@ func main() {
 			// Program is up and running, start successors
 			running += startSuccessors(ProgramGraph, program, backchannel)
 		} else {
-			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s", event.newState)
+			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s\n", event.newState)
 		}
 
 		if running == 0 {
