@@ -48,14 +48,14 @@ func RunProgram(prg *ProgramConfig, backchannel chan<- ProcessEvent) {
 		return
 	}
 
-	backchannel <- ProcessEvent{key: prg.key, pid: pHandle.Process.Pid, exit_code: 0, new_state: Starting}
+	backchannel <- ProcessEvent{key: prg.key, pid: pHandle.Process.Pid, exitCode: 0, newState: Starting}
 
 	// Only after startsecs, process is considered up and running
 	timer := time.NewTimer(time.Second * time.Duration(prg.Startsecs))
 	if prg.Startsecs != 0 {
 		go func() {
 			<-timer.C
-			backchannel <- ProcessEvent{key: prg.key, new_state: Running}
+			backchannel <- ProcessEvent{key: prg.key, newState: Running}
 		}()
 	}
 
@@ -63,7 +63,7 @@ func RunProgram(prg *ProgramConfig, backchannel chan<- ProcessEvent) {
 	if err := pHandle.Wait(); err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			// Exit code != 0
-			backchannel <- ProcessEvent{key: prg.key, exit_code: exiterr.ExitCode(), new_state: Exited}
+			backchannel <- ProcessEvent{key: prg.key, exitCode: exiterr.ExitCode(), newState: Exited}
 		}
 		fmt.Printf("[%s]: Finished with error: %v\n", prg.key, err)
 		timer.Stop()
@@ -72,5 +72,5 @@ func RunProgram(prg *ProgramConfig, backchannel chan<- ProcessEvent) {
 
 	// all good, exit code 0
 	timer.Stop()
-	backchannel <- ProcessEvent{key: prg.key, exit_code: pHandle.ProcessState.ExitCode(), new_state: Exited}
+	backchannel <- ProcessEvent{key: prg.key, exitCode: pHandle.ProcessState.ExitCode(), newState: Exited}
 }

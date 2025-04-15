@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
 )
@@ -123,12 +124,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Keep track of program states
+	// Create object to keep track of program states for REST endpoint
 	statemap := &SystemState{
-		state: make(map[string]ProcessState),
+		state: make(map[string]ProcessInfo),
 	}
 	for _, v := range programs {
-		statemap.state[v.key] = NotRunning
+		statemap.state[v.key] = ProcessInfo{State: NotRunning, ExitCode: ""}
 	}
 
 	mux := http.NewServeMux()
@@ -161,19 +162,26 @@ func main() {
 		ret := func() bool {
 			statemap.mu.Lock()
 			defer statemap.mu.Unlock()
-			_, ok := statemap.state[program.key]
+			state, ok := statemap.state[program.key]
 			if !ok {
 				fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program state with key=%s", program.key)
 				return false
 			}
-			statemap.state[program.key] = event.new_state
+			state.State = event.newState
+			if event.newState == Exited {
+				state.ExitCode = strconv.Itoa(event.exitCode)
+			} else {
+				// Clear the exit code in case of restarts
+				state.ExitCode = ""
+			}
+			statemap.state[program.key] = state
 			return true
 		}()
 		if !ret {
 			continue
 		}
 
-		if event.new_state == Exited {
+		if event.newState == Exited {
 			fmt.Printf("Exited: %s\n", program.key)
 			running--
 			program.hasRun = true
@@ -184,20 +192,20 @@ func main() {
 				go RunProgram(program, backchannel)
 				running++
 				fmt.Printf("Restarted: %s\n", program.key)
-			} else if event.exit_code == 0 {
+			} else if event.exitCode == 0 {
 				// Program has finished with exit code 0, start successors
 				running += startSuccessors(ProgramGraph, program, backchannel)
 			} else {
 				fmt.Fprintf(os.Stderr, "Failed to start %s, giving up\n", program.key)
 			}
-		} else if event.new_state == Starting {
+		} else if event.newState == Starting {
 			fmt.Printf("Starting: %s\n", program.key)
-		} else if event.new_state == Running {
+		} else if event.newState == Running {
 			fmt.Printf("Running: %s\n", program.key)
 			// Program is up and running, start successors
 			running += startSuccessors(ProgramGraph, program, backchannel)
 		} else {
-			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s", event.new_state)
+			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s", event.newState)
 		}
 
 		if running == 0 {
