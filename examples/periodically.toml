@@ -1,0 +1,8 @@
+name = "Periodically"
+server = "localhost:8080"
+
+[programs]
+    # Execute some program periodically every 5 seconds
+    [programs.periodically]
+    command = "date '+%S'"
+    period = "5s"

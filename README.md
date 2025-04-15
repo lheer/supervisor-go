@@ -37,6 +37,10 @@ $ curl -s localhost:8080/state | jq
     "state": "exited",
     "exit_code": "0"
   },
+  "periodically": {
+    "state": "waiting",
+    "exit_code": "0"
+  },
   "short": {
     "state": "exited",
     "exit_code": "0"
