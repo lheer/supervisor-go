@@ -180,6 +180,10 @@ func main() {
 			state.State = event.newState
 			if event.newState == Exited {
 				state.ExitCode = strconv.Itoa(event.exitCode)
+				if program.Period != "" {
+					// Exited, but period configured -> new state is waiting
+					state.State = Waiting
+				}
 			} else {
 				// Clear the exit code in case of restarts
 				state.ExitCode = ""
@@ -196,8 +200,18 @@ func main() {
 			running--
 			program.hasRun = true
 
+			// If a period is configured, restart the program after this time
+			if program.Period != "" {
+				running++
+				go func() {
+					duration, _ := time.ParseDuration(program.Period)
+					<-time.After(duration)
+					go RunProgram(program, backchannel)
+				}()
+			}
+
+			// Restart if configured
 			if program.Autorestart && (program.Startretries == -1 || program.Startretries != 0) {
-				// Restart if configured
 				program.Startretries--
 				go RunProgram(program, backchannel)
 				running++
