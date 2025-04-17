@@ -7,7 +7,9 @@ It's configured via a simple TOML file. View the [examples](examples) folder for
 
 - Start and monitor Unix processes
 - Restart on failure, max restart limits
+- Supports one-shot and long running processes
 - Execution order: Start a process after another is running or has exited
+- Supports starting processes periodically
 - REST API: Get the state of all processes as JSON
 
 ## Usage
@@ -33,6 +35,10 @@ $ curl -s localhost:8080/state | jq
   },
   "one_shot": {
     "state": "exited",
+    "exit_code": "0"
+  },
+  "periodically": {
+    "state": "waiting",
     "exit_code": "0"
   },
   "short": {
