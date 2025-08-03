@@ -16,6 +16,7 @@ type (
 		Startsecs    uint
 		Startretries int
 		After        string
+		Period       string
 		key          string
 		hasRun       bool
 	}
@@ -23,8 +24,8 @@ type (
 	ProcessState string
 
 	ProcessEvent struct {
-		key       string
-		pid       int // only valid in state starting and running
+		key      string
+		pid      int // only valid in state starting and running
 		exitCode int // only valid in state exited
 		newState ProcessState
 	}
@@ -36,16 +37,17 @@ const (
 	Starting   ProcessState = "starting"
 	Running    ProcessState = "running"
 	Exited     ProcessState = "exited"
+	Waiting    ProcessState = "waiting"
 )
 
 // JSON interface type definitions
 type (
 	ProcessInfo struct {
 		State    ProcessState `json:"state"`
-		ExitCode string          `json:"exit_code"`
+		ExitCode string       `json:"exit_code"`
 	}
 
- 	SystemState struct {
+	SystemState struct {
 		mu    sync.Mutex
 		state map[string]ProcessInfo
 	}

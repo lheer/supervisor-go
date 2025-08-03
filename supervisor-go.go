@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -53,14 +54,23 @@ func parseConfigFile(cfgFile *string) (ConfigFile, []ProgramConfig, error) {
 		programs = append(programs, prg)
 	}
 
-	// If no restart counter is given, set it to -1
 	for i := range programs {
 		prg := &programs[i]
+		// If no restart counter is given, set it to -1
 		defined := md.IsDefined("programs", prg.key, "startretries")
 		if !defined {
 			prg.Startretries = -1
 		}
+		// Check if period field can be parsed
+		defined = md.IsDefined("programs", prg.key, "period")
+		if defined {
+			_, err = time.ParseDuration(prg.Period)
+			if err != nil {
+				return cfg, []ProgramConfig{}, err
+			}
+		}
 	}
+
 	return cfg, programs, nil
 }
 
@@ -113,14 +123,14 @@ func main() {
 	// Parse toml config file
 	cfg, programs, err := parseConfigFile(configFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to parse config file: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "Unable to parse config file: %s\n", err.Error())
 		os.Exit(1)
 	}
 
 	// Create graph containing pointers to programs
 	ProgramGraph, err := createExecutionGraph(programs)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error while creating execution graph: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "Error while creating execution graph: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -154,7 +164,7 @@ func main() {
 		event := <-backchannel
 		program := getProgramByKey(programs, event.key)
 		if program == nil {
-			fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program with key=%s", event.key)
+			fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program with key=%s\n", event.key)
 			continue
 		}
 
@@ -164,12 +174,16 @@ func main() {
 			defer statemap.mu.Unlock()
 			state, ok := statemap.state[program.key]
 			if !ok {
-				fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program state with key=%s", program.key)
+				fmt.Fprintf(os.Stderr, "Internal error: Unable to retrieve program state with key=%s\n", program.key)
 				return false
 			}
 			state.State = event.newState
 			if event.newState == Exited {
 				state.ExitCode = strconv.Itoa(event.exitCode)
+				if program.Period != "" {
+					// Exited, but period configured -> new state is waiting
+					state.State = Waiting
+				}
 			} else {
 				// Clear the exit code in case of restarts
 				state.ExitCode = ""
@@ -186,8 +200,18 @@ func main() {
 			running--
 			program.hasRun = true
 
+			// If a period is configured, restart the program after this time
+			if program.Period != "" {
+				running++
+				go func() {
+					duration, _ := time.ParseDuration(program.Period)
+					<-time.After(duration)
+					go RunProgram(program, backchannel)
+				}()
+			}
+
+			// Restart if configured
 			if program.Autorestart && (program.Startretries == -1 || program.Startretries != 0) {
-				// Restart if configured
 				program.Startretries--
 				go RunProgram(program, backchannel)
 				running++
@@ -205,7 +229,7 @@ func main() {
 			// Program is up and running, start successors
 			running += startSuccessors(ProgramGraph, program, backchannel)
 		} else {
-			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s", event.newState)
+			fmt.Fprintf(os.Stderr, "Internal error: Invalid event with new_state=%s\n", event.newState)
 		}
 
 		if running == 0 {
